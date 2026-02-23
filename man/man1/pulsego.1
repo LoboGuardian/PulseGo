@@ -1,0 +1,168 @@
+.TH PULSEGO 1 "February 2026" "PulseGo" "User Commands"
+.SH NAME
+pulsego \- network health and performance monitoring tool
+.SH SYNOPSIS
+.B pulsego
+[\fIOPTIONS\fR]
+.SH DESCRIPTION
+PulseGo is a high-performance network diagnostic tool that measures the "pulse" of your connection. Unlike traditional speedtests, PulseGo analyzes Jitter, Latency, and Packet Stability to grade your network for real-world tasks like Gaming, 4K Streaming, and VoIP.
+
+The tool uses Go Goroutines to efficiently saturate bandwidth while measuring packet consistency, providing accurate QoE (Quality of Experience) metrics.
+.SH MODES
+.TP
+.B Standard Mode
+Runs a complete network diagnostic with download speed, latency, jitter, and bufferbloat measurement.
+.TP
+.B Watchdog Mode (\-\-watch)
+Continuous monitoring mode for real-time network health tracking. Ideal for gamers who want to monitor their connection while playing.
+.TP
+.B Gaming Mode (\-\-gaming)
+Latency-focused monitoring that uses small payloads to avoid bandwidth saturation. Perfect for monitoring during gameplay.
+.TP
+.B Stress Mode (\-\-stress)
+Tests network under heavy load with high concurrency connections.
+.TP
+.B P2P Mode (\-\-p2p)
+Tests against multiple endpoints simultaneously for distributed network analysis.
+.SH OPTIONS
+.SS General Options
+.TP
+.B \-\-simple
+Output speed only (human-readable format).
+.TP
+.B \-\-format=\fIFORMAT\fR
+Output format: \fItext\fR (default), \fIjson\fR, \fIprometheus\fR.
+.TP
+.B \-\-url=\fIURL\fR
+Test URL for speed test. Default: http://speedtest.tele2.net/10MB.zip
+.TP
+.B \-\-downloads=\fIN\fR
+Number of simultaneous connections. Default: 4
+.TP
+.B \-\-timeout=\fIDURATION\fR
+Timeout per download operation. Default: 2m
+.TP
+.B \-\-jitter=\fIBOOL\fR
+Measure jitter. Default: true
+.TP
+.B \-\-bufferbloat=\fIBOOL\fR
+Measure bufferbloat. Default: true
+.TP
+.B \-\-stress
+Enable stress test mode with high concurrency.
+.TP
+.B \-\-p2p=\fIURLS\fR
+Comma-separated list of URLs for P2P testing.
+.SS Watchdog Options
+.TP
+.B \-\-watch
+Enable continuous monitoring mode.
+.TP
+.B \-\-interval=\fIDURATION\fR
+Monitoring interval in watchdog mode. Default: 5s
+.TP
+.B \-\-gaming
+Gaming mode: uses small payloads (1MB) and focuses on latency/jitter metrics without saturating bandwidth.
+.TP
+.B \-\-latency\-threshold=\fIDURATION\fR
+Alert threshold for latency. Triggers alert when exceeded. Default: 100ms
+.TP
+.B \-\-jitter\-threshold=\fIDURATION\fR
+Alert threshold for jitter. Default: 15ms
+.TP
+.B \-\-loss\-threshold=\fIPERCENT\fR
+Alert threshold for packet loss percentage. Default: 5.0
+.SH OUTPUT FORMATS
+.TP
+.B text
+Human-readable output with all metrics and health grade.
+.TP
+.B json
+JSON format for integration with monitoring systems, APIs, or scripts.
+.TP
+.B prometheus
+Prometheus exposition format for direct integration with Prometheus server.
+.SH HEALTH GRADES
+.TP
+.B A (90-100)
+Excellent - Optimal for gaming, streaming, VoIP
+.TP
+.B B (75-89)
+Good - Suitable for most applications
+.TP
+.B C (60-74)
+Fair - May experience issues with demanding apps
+.TP
+.B D (40-59)
+Poor - Noticeable degradation in performance
+.TP
+.B F (0-39)
+Unacceptable - Network issues likely
+.SH EXAMPLES
+.TP
+.B Quick speed check:
+pulsego \-\-simple
+.TP
+.B Full diagnostic:
+pulsego
+.TP
+.B Gaming watchdog mode:
+pulsego \-\-watch \-\-gaming
+.TP
+.B Competitive gaming alerts (strict thresholds):
+pulsego \-\-watch \-\-gaming \-\-interval 2s \-\-latency\-threshold 30ms \-\-jitter\-threshold 5ms
+.TP
+.B JSON output for scripts:
+pulsego \-\-format=json > metrics.json
+.TP
+.B Prometheus metrics:
+pulsego \-\-format=prometheus
+.TP
+.B Stress test with 20 connections:
+pulsego \-\-stress \-\-downloads 20
+.TP
+.B Test custom server:
+pulsego \-\-url https://your-server.com/testfile.bin
+.SH METRICS
+.TP
+.B Download Speed
+Network throughput in Mbps
+.TP
+.B Latency
+Round-trip time for HTTP request
+.TP
+.B TTFB (Time To First Byte)
+Server response time
+.TP
+.B Jitter
+Variation in latency between consecutive samples
+.TP
+.B Packet Loss
+Percentage of failed requests
+.TP
+.B Bufferbloat
+Latency increase under load
+.TP
+.B Health Score
+Overall grade from 0-100
+.SH EXIT STATUS
+.TP
+.B 0
+Success
+.TP
+.B 1
+Error (network failure, invalid arguments, etc.)
+.SH FILES
+.TP
+.B $GOPATH/bin/pulsego
+Default binary location when installed via \fBgo install\fR
+.SH AUTHOR
+Written by LoboGuardian.
+.SH REPORTING BUGS
+Report bugs at: https://github.com/LoboGuardian/PulseGo/issues
+.SH COPYRIGHT
+MIT License. See LICENSE file for details.
+.SH "SEE ALSO"
+.BR speedtest-cli(1),
+.BR ping(1),
+.BR iperf3(1)
