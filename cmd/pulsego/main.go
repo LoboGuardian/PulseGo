@@ -11,18 +11,25 @@ import (
 	"github.com/LoboGuardian/pulsego/internal/engine"
 	"github.com/LoboGuardian/pulsego/internal/metrics"
 	"github.com/LoboGuardian/pulsego/internal/output"
+	"github.com/LoboGuardian/pulsego/internal/watchdog"
 )
 
 var (
-	simple    = flag.Bool("simple", false, "Simple output for humans")
-	format    = flag.String("format", "text", "Output format: text, json, prometheus")
-	url       = flag.String("url", "http://speedtest.tele2.net/10MB.zip", "URL for speed test")
-	downloads = flag.Int("downloads", 4, "Number of simultaneous connections")
-	timeout   = flag.Duration("timeout", 120*time.Second, "Timeout per download")
-	jitter    = flag.Bool("jitter", true, "Measure jitter")
-	bbloat    = flag.Bool("bufferbloat", true, "Measure bufferbloat")
-	stress    = flag.Bool("stress", false, "Stress mode (high concurrency)")
-	p2p       = flag.String("p2p", "", "P2P mode: comma-separated list of URLs")
+	simple     = flag.Bool("simple", false, "Simple output for humans")
+	format     = flag.String("format", "text", "Output format: text, json, prometheus")
+	url        = flag.String("url", "http://speedtest.tele2.net/10MB.zip", "URL for speed test")
+	downloads  = flag.Int("downloads", 4, "Number of simultaneous connections")
+	timeout    = flag.Duration("timeout", 120*time.Second, "Timeout per download")
+	jitter     = flag.Bool("jitter", true, "Measure jitter")
+	bbloat     = flag.Bool("bufferbloat", true, "Measure bufferbloat")
+	stress     = flag.Bool("stress", false, "Stress mode (high concurrency)")
+	p2p        = flag.String("p2p", "", "P2P mode: comma-separated list of URLs")
+	watch      = flag.Bool("watch", false, "Watchdog mode: continuous monitoring")
+	interval   = flag.Duration("interval", 5*time.Second, "Watchdog interval")
+	latThresh  = flag.Duration("latency-threshold", 100*time.Millisecond, "Latency alert threshold")
+	jitThresh  = flag.Duration("jitter-threshold", 15*time.Millisecond, "Jitter alert threshold")
+	lossThresh = flag.Float64("loss-threshold", 5.0, "Packet loss alert threshold (percent)")
+	gaming     = flag.Bool("gaming", false, "Gaming mode: latency-focused monitoring (no bandwidth test)")
 )
 
 func main() {
@@ -30,6 +37,11 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout*3)
 	defer cancel()
+
+	if *watch {
+		runWatchdog(ctx)
+		return
+	}
 
 	if *format == "text" {
 		fmt.Println("PulseGo - Network Health Monitor")
@@ -173,4 +185,31 @@ func runP2P(ctx context.Context) {
 		result.Duration,
 	)
 	fmt.Printf("Nodes: %d | Errors: %d\n", result.Connections, result.Errors)
+}
+
+func runWatchdog(ctx context.Context) {
+	watchURL := *url
+	if *gaming || strings.Contains(watchURL, "10MB.zip") {
+		watchURL = "http://speedtest.tele2.net/1MB.zip"
+	}
+
+	cfg := watchdog.Config{
+		URL:              watchURL,
+		Interval:         *interval,
+		JitterSamples:    5,
+		JitterInterval:   100 * time.Millisecond,
+		JitterThreshold:  *jitThresh,
+		LatencyThreshold: *latThresh,
+		LossThreshold:    *lossThresh,
+		GamingMode:       *gaming,
+	}
+
+	w := watchdog.NewWatcher(cfg)
+
+	if err := w.Start(ctx); err != nil && err != context.Canceled {
+		fmt.Printf("\nError: %v\n", err)
+		os.Exit(1)
+	}
+
+	w.PrintSummary()
 }
